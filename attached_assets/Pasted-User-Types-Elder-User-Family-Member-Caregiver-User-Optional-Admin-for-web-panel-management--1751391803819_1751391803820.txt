@@ -1,0 +1,148 @@
+User Types:
+Elder User
+
+Family Member / Caregiver User
+
+(Optional): Admin (for web panel management if you decide to build one)
+
+🧱 Backend Data Model (Suggested Firebase Firestore Structure):
+plaintext
+Copy
+Edit
+Collections:
+- Users
+  - userId (Elder / Family Member)
+    - userType: Elder / Family
+    - name
+    - age
+    - phone
+    - email
+    - relation (For family members: "Son", "Daughter", etc.)
+    - elderId (for family users, linking to elder userId)
+
+- Elders
+  - elderId
+    - userId (linked to Users collection)
+    - medicalInfo
+    - emergencyContacts
+    - assignedFamilyIds: [familyUserId1, familyUserId2...]
+
+- Reminders
+  - reminderId
+    - elderId
+    - type: Medication / Appointment
+    - time
+    - status: Pending / Taken / Missed
+
+- MoodLogs
+  - moodId
+    - elderId
+    - moodType
+    - timestamp
+
+- SOSAlerts
+  - sosId
+    - elderId
+    - location
+    - timestamp
+
+- CheckIns
+  - checkInId
+    - elderId
+    - familyId
+    - status: Responded / Ignored / NoResponse
+✅ Step-by-Step Flow for Account Creation & Family Data Feeding:
+1. 📝 User Registration Flow:
+Options at Login Screen:
+
+Register as Elder
+
+Register as Family Member
+
+Registration Fields:
+| Elder Registration | Family Member Registration |
+|--|--|
+| Name | Name |
+| Age | Relation to Elder |
+| Email / Phone | Email / Phone |
+| Password | Password |
+| Emergency Contacts | Elder's Unique Code (see below) |
+
+Use Firebase Authentication for basic auth (Email/Phone/Google Login).
+
+2. 🔗 Elder-Family Linking Flow:
+a) Elder Registration (First Step):
+Elder signs up.
+
+On successful signup:
+
+Backend generates a Unique Elder Code / QR Code (Example: E1234-ABCD).
+
+b) Family Registration (Second Step):
+Family member registers.
+
+During registration (or later from settings):
+
+They input the "Elder Unique Code" to link their account.
+
+On successful input:
+
+Backend adds family member userId to assignedFamilyIds of the elder.
+
+Also saves elderId reference in the family member’s profile.
+
+3. 🗂️ Adding Multiple Family Members:
+Elder can share their Unique Elder Code with multiple family members.
+
+Each family member, during signup, inputs the code and links to that elder.
+
+Elder gets a notification:
+
+“Ravi (Son) has requested to monitor your care profile. Approve? (Yes / No)”
+(Optional feature for elder consent)
+
+4. 🧑‍💻 Post Registration Data Feeding by Family:
+Once a family account is created and linked to an elder:
+
+Family members can:
+✅ Set Medication Reminders
+✅ Set Appointment Schedules
+✅ View elder’s mood logs
+✅ View location (if allowed)
+✅ Send check-in prompts
+✅ Start video calls
+✅ Configure SOS emergency contacts
+✅ Monitor dashboard statistics
+
+Elder can:
+✅ See scheduled reminders
+✅ Respond to check-ins
+✅ Trigger SOS
+✅ Update daily mood
+
+5. 🔐 Security & Privacy Considerations:
+Elder should approve family link requests (Optional, but recommended for privacy).
+
+Provide "Unlink Family" option for elders.
+
+Provide data encryption for location, health, and contact details.
+
+Store minimal elder data on device. Sync everything through backend with secure APIs.
+
+6. 🎨 UI Flow Sample:
+Screen	Description
+Welcome	Login / Register
+Registration Type	Select Elder or Family
+Elder Registration	Fill basic info, submit
+Elder Unique Code Generated	Displayed post-elder registration
+Family Registration	Fill info + Elder Unique Code
+Elder Approval (Optional)	Elder receives approval request
+Dashboard	Elder Mode / Family Mode loaded based on user type
+
+✅ Summary for AI Agent Backend Development Prompt (Account Creation & Family Link):
+"Build Firebase backend (or .NET Core/Node.js API) to support two user types: Elder and Family.
+Implement user registration with role selection, with elder users getting a unique link code.
+Family users should be able to input this code to link to an elder.
+Store family-elder relationships in Firestore (or DB), allowing multiple family members per elder.
+Enable CRUD APIs for reminders, mood logs, SOS alerts, check-ins, and user profiles with real-time Firestore listeners or REST API endpoints.
+Implement elder consent approval flow for added security."

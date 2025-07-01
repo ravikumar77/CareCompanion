@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.familycare.companion"
+      "bundleIdentifier": "com.care.familycare"
     },
     "android": {
-      "package": "com.familycare.companion",
+      "package": "com.care.familycare",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",

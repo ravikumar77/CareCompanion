@@ -1,0 +1,213 @@
+AI Agent Prompt for Flutter/Dart App Development:
+📱 App Name: Family Care Companion
+🎯 App Purpose:
+Build a cross-platform mobile app using Flutter (Dart) for elderly care and remote family monitoring.
+
+The app will run in dual mode:
+
+Elder Mode:
+Ultra-simple UI for seniors with key actions like reminders, SOS alerts, mood check-ins, and video calls.
+
+Family Mode:
+For caregivers to monitor elder activity, receive alerts, initiate check-ins, and video call when needed.
+
+✅ Detailed Feature List (Flutter/Dart Mobile App):
+1. 👴 Elder Mode Features (Senior-Friendly Flutter UI):
+📅 Medication Reminders:
+
+Local notifications (using flutter_local_notifications package)
+
+Schedule recurring reminders
+
+Mark as Taken / Missed
+
+Optionally sync status to backend
+
+🩺 Appointment Reminders:
+
+Calendar-based scheduling
+
+Alerts with snooze option
+
+Integration with device calendar (Optional)
+
+🚨 SOS Emergency Button:
+
+One large clickable button
+
+Sends GPS location + predefined emergency text to family via push notification and optional SMS
+
+Optional: Auto-dial emergency contact
+
+😊 Mood Tracking:
+
+Daily mood prompt (Happy, Neutral, Sad, Anxious, etc.)
+
+Simple emoji-based UI
+
+Data sync to backend for family visibility
+
+📹 Quick Video Call:
+
+One-tap video call initiation using Agora / WebRTC / Twilio Flutter SDK
+
+🔋 Low Battery Detection:
+
+Native battery status check using battery_plus package
+
+Automatic low-battery notification to family
+
+🦻 Accessibility Focused UI:
+
+Large Text (Dynamic Font Scaling)
+
+High Contrast Mode
+
+Voice Prompts (Text-to-Speech using flutter_tts)
+
+Simple navigation flow
+
+2. 👨‍👩‍👧 Family Mode Features (Caregiver Monitoring):
+📊 Remote Care Dashboard:
+
+View elder’s medication intake status
+
+See latest mood entries
+
+Track appointment compliance
+
+View location if allowed
+
+🛎️ Real-Time Alerts & Notifications:
+
+SOS triggered
+
+Missed medications or appointments
+
+Low battery on elder device
+
+No activity or response for X hours
+
+📞 Remote Check-In:
+
+Button to send real-time "Are you okay?" check-in prompt
+
+Elder receives a popup to acknowledge
+
+Auto-escalation flow if elder doesn’t respond
+
+📍 Live GPS Tracking (Optional / With Consent):
+
+Track elder’s current location using geolocator package
+
+Show map using google_maps_flutter
+
+📹 Video Calling:
+
+Family can start video calls to elder
+
+Use Agora.io Flutter SDK / WebRTC / Twilio Video Flutter
+
+Call logs
+
+📈 Weekly/Monthly Reports:
+
+Mood trend graph (using fl_chart or charts_flutter)
+
+Medication adherence %
+
+Total missed alerts
+
+Check-in history
+
+👥 Multi-Caregiver Support:
+
+Allow multiple family members to be linked to a single elder profile
+
+3. 🔑 Common Features:
+👤 Profile Management:
+
+Elder Profile: Name, DOB, medical info, emergency contacts
+
+Family Profile: Name, relation to elder
+
+🔐 Secure Login & Authentication:
+
+Firebase Authentication (Email, Google, or Phone)
+
+Biometric authentication (Optional for Family side)
+
+🌐 Real-Time Backend Sync:
+
+Use Firebase Firestore / Supabase / Custom .NET Core / Node.js API
+
+Push notifications via Firebase Cloud Messaging (FCM)
+
+📶 Offline Support for Elder Mode:
+
+Allow offline reminder alerts
+
+Sync when online
+
+🖥️ Optional Web Admin Panel:
+
+For extended family management & reporting
+
+4. 📲 Recommended Flutter Packages:
+Functionality	Flutter Package
+Local Notifications	flutter_local_notifications
+Video Calling	agora_rtc_engine / flutter_webrtc
+Location	geolocator, google_maps_flutter
+Push Notifications	firebase_messaging
+Backend Integration	Firebase Firestore / REST API (http / dio)
+Charts	fl_chart, charts_flutter
+Authentication	firebase_auth / OAuth
+Text-to-Speech	flutter_tts
+Battery Status	battery_plus
+
+5. ✅ AI Agent Flutter Build Prompt:
+Prompt to feed AI agent:
+
+Build a cross-platform Flutter (Dart) mobile app called "Family Care Companion" with two user modes:
+
+1. Elder Mode:
+
+Show medication reminders, appointment alerts
+
+One-touch SOS emergency button
+
+Mood tracking with emojis
+
+One-tap video calling
+
+Large font UI, high contrast, and text-to-speech support
+
+Local notifications using flutter_local_notifications
+
+Capture low battery and send alerts
+
+2. Family Mode:
+
+Show elder's status dashboard: medication taken/missed, mood logs, appointment status
+
+Real-time alerts for SOS, missed medications, inactivity, and low battery
+
+Send check-in prompts to elder with auto-escalation
+
+Live GPS tracking using geolocator and google_maps_flutter
+
+Initiate video calls using Agora or WebRTC Flutter SDK
+
+Weekly summary reports with mood and medication charts using fl_chart
+
+Push notifications using Firebase Cloud Messaging
+
+Secure authentication using Firebase Auth
+
+Optional multiple caregiver profiles linked to one elder
+
+Backend:
+
+Use Firebase Firestore or custom Node.js / .NET Core backend for data storage and real-time sync
+
+Ensure full accessibility for elderly users, responsive layouts, and offline capability for reminders.

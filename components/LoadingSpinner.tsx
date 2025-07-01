@@ -1,16 +1,11 @@
+
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import { Loader } from 'lucide-react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 
-interface LoadingSpinnerProps {
-  text?: string;
-}
-
-export default function LoadingSpinner({ text = 'Loading...' }: LoadingSpinnerProps) {
+export default function LoadingSpinner() {
   return (
     <View style={styles.container}>
-      <Loader size={32} color="#2563EB" />
-      <Text style={styles.text}>{text}</Text>
+      <ActivityIndicator size="large" color="#2563EB" />
     </View>
   );
 }
@@ -20,12 +15,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#F8FAFC',
-  },
-  text: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#64748B',
-    marginTop: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
 });

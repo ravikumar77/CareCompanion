@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   View, 
@@ -6,218 +7,289 @@ import {
   TouchableOpacity, 
   ScrollView, 
   Alert,
-  Platform,
-  Image
+  Dimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useUser } from '../../hooks/useUser';
 import { router } from 'expo-router';
 import { 
-  Phone, 
-  Shield, 
+  Heart, 
   Pill, 
   Calendar, 
-  Smile, 
-  Frown, 
-  Meh,
-  Heart,
+  Phone, 
+  Shield, 
+  Smile,
+  Clock,
   Bell,
   MapPin,
-  Camera,
-  MessageCircle,
-  Clock
+  Activity,
+  Users,
+  TrendingUp
 } from 'lucide-react-native';
 
-export default function ElderCareScreen() {
-  const [currentMood, setCurrentMood] = useState<string>('');
-  const [medicationTaken, setMedicationTaken] = useState<boolean>(false);
-  const [currentTime, setCurrentTime] = useState<string>('');
+const { width } = Dimensions.get('window');
+
+export default function HomeScreen() {
+  const { user, userProfile, loading } = useUser();
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    };
-    
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    
-    return () => clearInterval(interval);
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
   }, []);
 
-  const handleSOSPress = () => {
-    router.push('/emergency');
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
-  const handleVideoCall = () => {
-    router.push('/video-call');
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
   };
 
-  const handleMoodSelect = (mood: string) => {
-    setCurrentMood(mood);
-    Alert.alert('Mood Logged', `Your mood has been recorded as ${mood}. Your family has been notified.`);
-  };
+  const QuickActionButton = ({ 
+    icon, 
+    title, 
+    subtitle, 
+    onPress, 
+    color = '#2563EB',
+    backgroundColor = '#EFF6FF'
+  }: {
+    icon: React.ReactNode;
+    title: string;
+    subtitle?: string;
+    onPress: () => void;
+    color?: string;
+    backgroundColor?: string;
+  }) => (
+    <TouchableOpacity 
+      style={[styles.quickActionButton, { backgroundColor }]} 
+      onPress={onPress}
+    >
+      <View style={[styles.quickActionIcon, { backgroundColor: color }]}>
+        {icon}
+      </View>
+      <Text style={styles.quickActionTitle}>{title}</Text>
+      {subtitle && <Text style={styles.quickActionSubtitle}>{subtitle}</Text>}
+    </TouchableOpacity>
+  );
 
-  const handleMedicationTaken = () => {
-    setMedicationTaken(true);
-    Alert.alert('✅ Great!', 'Medication marked as taken. Your family has been notified.');
-  };
+  const StatCard = ({ 
+    icon, 
+    title, 
+    value, 
+    color = '#2563EB' 
+  }: {
+    icon: React.ReactNode;
+    title: string;
+    value: string;
+    color?: string;
+  }) => (
+    <View style={styles.statCard}>
+      <View style={[styles.statIcon, { backgroundColor: `${color}20` }]}>
+        {React.cloneElement(icon as React.ReactElement, { size: 20, color })}
+      </View>
+      <Text style={styles.statValue}>{value}</Text>
+      <Text style={styles.statTitle}>{title}</Text>
+    </View>
+  );
 
-  const handleQuickCall = () => {
-    Alert.alert('📞 Calling', 'Calling your primary contact...');
-  };
-
-  const handleCheckIn = () => {
-    Alert.alert('💬 Check-in', 'Sending a quick "I\'m okay" message to your family.');
-  };
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Header with Time */}
+      <ScrollView style={styles.scrollView}>
+        {/* Header */}
         <View style={styles.header}>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/3768131/pexels-photo-3768131.jpeg?auto=compress&cs=tinysrgb&w=400' }}
-            style={styles.profileImage}
-          />
-          <View style={styles.headerText}>
-            <Text style={styles.greeting}>Good Morning, Rose!</Text>
-            <Text style={styles.timeText}>{currentTime}</Text>
-            <Text style={styles.dateText}>{new Date().toLocaleDateString('en-US', { 
-              weekday: 'long', 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })}</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.greeting}>
+              Good {currentTime.getHours() < 12 ? 'Morning' : currentTime.getHours() < 18 ? 'Afternoon' : 'Evening'}
+            </Text>
+            <Text style={styles.userName}>
+              {userProfile?.displayName || user?.displayName || 'User'}
+            </Text>
+            <Text style={styles.date}>{formatDate(currentTime)}</Text>
+          </View>
+          <View style={styles.timeContainer}>
+            <Text style={styles.time}>{formatTime(currentTime)}</Text>
           </View>
         </View>
 
-        {/* SOS Emergency Button */}
-        <TouchableOpacity 
-          style={styles.sosButton} 
-          onPress={handleSOSPress}
-          activeOpacity={0.8}
-        >
-          <Shield size={48} color="#FFFFFF" />
-          <Text style={styles.sosText}>EMERGENCY SOS</Text>
-          <Text style={styles.sosSubtext}>Press and hold for 3 seconds</Text>
-        </TouchableOpacity>
-
-        {/* Quick Actions Row */}
-        <View style={styles.quickActionsRow}>
-          <TouchableOpacity style={styles.quickAction} onPress={handleVideoCall}>
-            <Phone size={32} color="#2563EB" />
-            <Text style={styles.quickActionText}>Video Call</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.quickAction} onPress={handleQuickCall}>
-            <MessageCircle size={32} color="#22C55E" />
-            <Text style={styles.quickActionText}>Quick Call</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.quickAction} onPress={handleCheckIn}>
-            <Heart size={32} color="#EF4444" />
-            <Text style={styles.quickActionText}>Check-in</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Mood Tracking */}
+        {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>How are you feeling today?</Text>
-          <View style={styles.moodContainer}>
-            <TouchableOpacity 
-              style={[styles.moodButton, currentMood === 'happy' && styles.moodSelected]}
-              onPress={() => handleMoodSelect('happy')}
-            >
-              <Smile size={48} color={currentMood === 'happy' ? '#FFFFFF' : '#22C55E'} />
-              <Text style={[styles.moodText, currentMood === 'happy' && styles.moodTextSelected]}>
-                Great
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.moodButton, currentMood === 'okay' && styles.moodSelected]}
-              onPress={() => handleMoodSelect('okay')}
-            >
-              <Meh size={48} color={currentMood === 'okay' ? '#FFFFFF' : '#F59E0B'} />
-              <Text style={[styles.moodText, currentMood === 'okay' && styles.moodTextSelected]}>
-                Okay
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[styles.moodButton, currentMood === 'sad' && styles.moodSelected]}
-              onPress={() => handleMoodSelect('sad')}
-            >
-              <Frown size={48} color={currentMood === 'sad' ? '#FFFFFF' : '#EF4444'} />
-              <Text style={[styles.moodText, currentMood === 'sad' && styles.moodTextSelected]}>
-                Not Great
-              </Text>
-            </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            {userProfile?.userType === 'elder' ? (
+              <>
+                <QuickActionButton
+                  icon={<Shield size={24} color="#FFFFFF" />}
+                  title="Emergency"
+                  subtitle="Get help now"
+                  onPress={() => router.push('/emergency')}
+                  color="#EF4444"
+                  backgroundColor="#FEF2F2"
+                />
+                <QuickActionButton
+                  icon={<Pill size={24} color="#FFFFFF" />}
+                  title="Medications"
+                  subtitle="View reminders"
+                  onPress={() => Alert.alert('Coming Soon', 'Medication tracking will be available soon.')}
+                  color="#059669"
+                  backgroundColor="#ECFDF5"
+                />
+                <QuickActionButton
+                  icon={<Phone size={24} color="#FFFFFF" />}
+                  title="Call Family"
+                  subtitle="Quick contact"
+                  onPress={() => router.push('/video-call')}
+                  color="#7C3AED"
+                  backgroundColor="#F3E8FF"
+                />
+                <QuickActionButton
+                  icon={<Smile size={24} color="#FFFFFF" />}
+                  title="Mood Check"
+                  subtitle="How are you?"
+                  onPress={() => Alert.alert('Coming Soon', 'Mood tracking will be available soon.')}
+                  color="#F59E0B"
+                  backgroundColor="#FFFBEB"
+                />
+              </>
+            ) : (
+              <>
+                <QuickActionButton
+                  icon={<Activity size={24} color="#FFFFFF" />}
+                  title="Elder Status"
+                  subtitle="Check activity"
+                  onPress={() => router.push('/(tabs)/family')}
+                  color="#2563EB"
+                  backgroundColor="#EFF6FF"
+                />
+                <QuickActionButton
+                  icon={<Bell size={24} color="#FFFFFF" />}
+                  title="Alerts"
+                  subtitle="View notifications"
+                  onPress={() => Alert.alert('Coming Soon', 'Alert management will be available soon.')}
+                  color="#EF4444"
+                  backgroundColor="#FEF2F2"
+                />
+                <QuickActionButton
+                  icon={<Phone size={24} color="#FFFFFF" />}
+                  title="Call Elder"
+                  subtitle="Video call"
+                  onPress={() => router.push('/video-call')}
+                  color="#059669"
+                  backgroundColor="#ECFDF5"
+                />
+                <QuickActionButton
+                  icon={<MapPin size={24} color="#FFFFFF" />}
+                  title="Location"
+                  subtitle="Track location"
+                  onPress={() => Alert.alert('Coming Soon', 'Location tracking will be available soon.')}
+                  color="#7C3AED"
+                  backgroundColor="#F3E8FF"
+                />
+              </>
+            )}
           </View>
         </View>
 
-        {/* Today's Schedule */}
+        {/* Stats/Summary */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Today's Schedule</Text>
-          
-          {/* Medication Reminder */}
-          <TouchableOpacity 
-            style={[styles.scheduleCard, medicationTaken && styles.medicationTaken]}
-            onPress={handleMedicationTaken}
-            disabled={medicationTaken}
-          >
-            <View style={styles.scheduleIcon}>
-              <Pill size={28} color={medicationTaken ? '#22C55E' : '#2563EB'} />
-            </View>
-            <View style={styles.scheduleInfo}>
-              <Text style={styles.scheduleTitle}>
-                {medicationTaken ? '✅ Morning Medication' : '💊 Morning Medication'}
-              </Text>
-              <Text style={styles.scheduleTime}>
-                {medicationTaken ? 'Taken at 9:15 AM' : 'Due: 9:00 AM'}
-              </Text>
-            </View>
-            <Clock size={20} color="#64748B" />
-          </TouchableOpacity>
-
-          {/* Appointment */}
-          <View style={styles.scheduleCard}>
-            <View style={styles.scheduleIcon}>
-              <Calendar size={28} color="#2563EB" />
-            </View>
-            <View style={styles.scheduleInfo}>
-              <Text style={styles.scheduleTitle}>Doctor Appointment</Text>
-              <Text style={styles.scheduleTime}>Tomorrow at 2:00 PM</Text>
-              <Text style={styles.scheduleLocation}>Dr. Johnson - Cardiology</Text>
-            </View>
-            <Bell size={20} color="#64748B" />
-          </View>
-
-          {/* Exercise Reminder */}
-          <View style={styles.scheduleCard}>
-            <View style={styles.scheduleIcon}>
-              <Heart size={28} color="#EF4444" />
-            </View>
-            <View style={styles.scheduleInfo}>
-              <Text style={styles.scheduleTitle}>Daily Walk</Text>
-              <Text style={styles.scheduleTime}>3:00 PM - 30 minutes</Text>
-              <Text style={styles.scheduleLocation}>Around the neighborhood</Text>
-            </View>
-            <MapPin size={20} color="#64748B" />
+          <Text style={styles.sectionTitle}>
+            {userProfile?.userType === 'elder' ? 'Today\'s Summary' : 'Care Overview'}
+          </Text>
+          <View style={styles.statsGrid}>
+            {userProfile?.userType === 'elder' ? (
+              <>
+                <StatCard
+                  icon={<Pill />}
+                  title="Medications"
+                  value="2/3"
+                  color="#059669"
+                />
+                <StatCard
+                  icon={<Calendar />}
+                  title="Appointments"
+                  value="1"
+                  color="#2563EB"
+                />
+                <StatCard
+                  icon={<Smile />}
+                  title="Mood"
+                  value="Good"
+                  color="#F59E0B"
+                />
+                <StatCard
+                  icon={<Activity />}
+                  title="Activity"
+                  value="Active"
+                  color="#7C3AED"
+                />
+              </>
+            ) : (
+              <>
+                <StatCard
+                  icon={<Users />}
+                  title="Connected"
+                  value="1"
+                  color="#2563EB"
+                />
+                <StatCard
+                  icon={<Bell />}
+                  title="Alerts"
+                  value="0"
+                  color="#059669"
+                />
+                <StatCard
+                  icon={<TrendingUp />}
+                  title="Compliance"
+                  value="85%"
+                  color="#F59E0B"
+                />
+                <StatCard
+                  icon={<Heart />}
+                  title="Health"
+                  value="Good"
+                  color="#EF4444"
+                />
+              </>
+            )}
           </View>
         </View>
 
-        {/* Weather & Location */}
-        <View style={styles.weatherCard}>
-          <View style={styles.weatherInfo}>
-            <Text style={styles.weatherTemp}>72°F</Text>
-            <Text style={styles.weatherDesc}>Sunny</Text>
-            <Text style={styles.weatherLocation}>📍 Home - Safe</Text>
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Recent Activity</Text>
+          <View style={styles.activityCard}>
+            <View style={styles.activityItem}>
+              <View style={styles.activityIcon}>
+                <Clock size={16} color="#64748B" />
+              </View>
+              <View style={styles.activityContent}>
+                <Text style={styles.activityTitle}>Welcome to Family Care Companion!</Text>
+                <Text style={styles.activityTime}>Just now</Text>
+              </View>
+            </View>
           </View>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/281260/pexels-photo-281260.jpeg?auto=compress&cs=tinysrgb&w=400' }}
-            style={styles.weatherImage}
-          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -231,221 +303,173 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#64748B',
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    marginVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
   },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    marginRight: 16,
-  },
-  headerText: {
+  headerContent: {
     flex: 1,
   },
   greeting: {
+    fontSize: 16,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  userName: {
     fontSize: 28,
-    fontFamily: 'Inter-Bold',
+    fontWeight: 'bold',
     color: '#1E293B',
     marginBottom: 4,
   },
-  timeText: {
-    fontSize: 24,
-    fontFamily: 'Inter-SemiBold',
-    color: '#2563EB',
-    marginBottom: 2,
-  },
-  dateText: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
+  date: {
+    fontSize: 14,
     color: '#64748B',
   },
-  sosButton: {
-    backgroundColor: '#DC2626',
-    paddingVertical: 32,
-    paddingHorizontal: 40,
-    borderRadius: 24,
-    alignItems: 'center',
-    marginVertical: 20,
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
+  timeContainer: {
+    backgroundColor: '#2563EB',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
   },
-  sosText: {
-    fontSize: 28,
-    fontFamily: 'Inter-Bold',
-    color: '#FFFFFF',
-    marginTop: 12,
-  },
-  sosSubtext: {
+  time: {
     fontSize: 16,
-    fontFamily: 'Inter-Regular',
+    fontWeight: '600',
     color: '#FFFFFF',
-    opacity: 0.9,
-    marginTop: 4,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 16,
-  },
-  quickAction: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 24,
-    marginHorizontal: 6,
-    borderRadius: 16,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  quickActionText: {
-    fontSize: 14,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1E293B',
-    marginTop: 8,
-    textAlign: 'center',
   },
   section: {
-    marginVertical: 16,
+    marginBottom: 32,
   },
   sectionTitle: {
-    fontSize: 24,
-    fontFamily: 'Inter-Bold',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#1E293B',
     marginBottom: 16,
+    paddingHorizontal: 24,
   },
-  moodContainer: {
+  quickActionsGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    paddingHorizontal: 24,
+    gap: 12,
   },
-  moodButton: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 24,
-    marginHorizontal: 6,
-    borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  moodSelected: {
-    backgroundColor: '#2563EB',
-    transform: [{ scale: 1.05 }],
-  },
-  moodText: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
-    color: '#1E293B',
-    marginTop: 12,
-  },
-  moodTextSelected: {
-    color: '#FFFFFF',
-  },
-  scheduleCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
+  quickActionButton: {
+    width: (width - 60) / 2,
+    backgroundColor: '#EFF6FF',
     borderRadius: 16,
-    flexDirection: 'row',
+    padding: 20,
     alignItems: 'center',
-    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
-  medicationTaken: {
-    backgroundColor: '#F0FDF4',
-    borderWidth: 2,
-    borderColor: '#22C55E',
-  },
-  scheduleIcon: {
+  quickActionIcon: {
     width: 48,
     height: 48,
+    backgroundColor: '#2563EB',
     borderRadius: 24,
-    backgroundColor: '#F1F5F9',
-    alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 16,
+    alignItems: 'center',
+    marginBottom: 12,
   },
-  scheduleInfo: {
-    flex: 1,
-  },
-  scheduleTitle: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
+  quickActionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#1E293B',
     marginBottom: 4,
   },
-  scheduleTime: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#2563EB',
-    marginBottom: 2,
-  },
-  scheduleLocation: {
-    fontSize: 14,
-    fontFamily: 'Inter-Regular',
+  quickActionSubtitle: {
+    fontSize: 12,
     color: '#64748B',
+    textAlign: 'center',
   },
-  weatherCard: {
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 24,
+    gap: 12,
+  },
+  statCard: {
+    width: (width - 60) / 2,
     backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     padding: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  statIcon: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  statTitle: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+  },
+  activityCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 24,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  activityItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
   },
-  weatherInfo: {
+  activityIcon: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  activityContent: {
     flex: 1,
   },
-  weatherTemp: {
-    fontSize: 36,
-    fontFamily: 'Inter-Bold',
+  activityTitle: {
+    fontSize: 14,
+    fontWeight: '500',
     color: '#1E293B',
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  weatherDesc: {
-    fontSize: 18,
-    fontFamily: 'Inter-SemiBold',
+  activityTime: {
+    fontSize: 12,
     color: '#64748B',
-    marginBottom: 8,
-  },
-  weatherLocation: {
-    fontSize: 16,
-    fontFamily: 'Inter-Regular',
-    color: '#22C55E',
-  },
-  weatherImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
   },
 });
