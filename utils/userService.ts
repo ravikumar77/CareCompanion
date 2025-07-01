@@ -1,4 +1,3 @@
-
 import { auth, db } from './firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -29,21 +28,26 @@ export type ReminderType = 'medication' | 'appointment' | 'checkup' | 'exercise'
 export type MoodType = 'happy' | 'sad' | 'anxious' | 'calm' | 'tired' | 'energetic';
 export type CheckInStatus = 'pending' | 'responded' | 'ignored' | 'no_response';
 
-// User Profile Interfaces
-export interface BaseUser {
+// User Profile Interfaces - Updated to match specification
+export interface UserProfile {
   userId: string;
   userType: UserType;
+  displayName: string;
   name: string;
   email: string;
   phone?: string;
+  age?: number; // For elders
+  relation?: RelationType; // For family members
+  elderId?: string; // For family users, linking to elder userId
+  elderCode?: string; // For elders - unique code for family linking
+  isApproved?: boolean; // For family members - elder approval status
   createdAt: Date;
   lastActive: Date;
 }
 
-export interface ElderUser extends BaseUser {
-  userType: 'elder';
-  age: number;
-  elderCode: string; // Unique code for family linking
+export interface ElderData {
+  elderId: string;
+  userId: string; // linked to Users collection
   medicalInfo?: {
     conditions: string[];
     medications: string[];
@@ -52,6 +56,7 @@ export interface ElderUser extends BaseUser {
   };
   emergencyContacts: EmergencyContact[];
   assignedFamilyIds: string[];
+  pendingFamilyRequests?: PendingFamilyRequest[];
   location?: {
     latitude: number;
     longitude: number;
@@ -59,12 +64,11 @@ export interface ElderUser extends BaseUser {
   };
 }
 
-export interface FamilyUser extends BaseUser {
-  userType: 'family';
+export interface PendingFamilyRequest {
+  familyId: string;
+  name: string;
   relation: RelationType;
-  relationDescription?: string;
-  elderId: string; // Linked elder's userId
-  isApproved: boolean; // Elder approval status
+  requestedAt: Date;
 }
 
 export interface EmergencyContact {
@@ -75,7 +79,7 @@ export interface EmergencyContact {
   isPrimary: boolean;
 }
 
-// Data Models
+// Data Models - Updated to match specification
 export interface Reminder {
   reminderId: string;
   elderId: string;
@@ -83,12 +87,12 @@ export interface Reminder {
   title: string;
   description?: string;
   time: string; // HH:MM format
-  daysOfWeek: number[]; // 0-6 (Sunday-Saturday)
+  status: 'pending' | 'taken' | 'missed';
+  daysOfWeek?: number[]; // 0-6 (Sunday-Saturday)
   isActive: boolean;
-  createdBy: string; // Family member userId
+  createdBy?: string; // Family member userId
   createdAt: Date;
   lastTriggered?: Date;
-  status: 'pending' | 'taken' | 'missed';
 }
 
 export interface MoodLog {
@@ -131,14 +135,14 @@ const generateElderCode = (): string => {
   return `${prefix}${numbers}-${letters}`;
 };
 
-// User Registration Functions
+// User Registration Functions - Updated to match specification
 export const registerElderUser = async (
   email: string,
   password: string,
   name: string,
   age: number,
   phone?: string
-): Promise<ElderUser> => {
+): Promise<UserProfile> => {
   try {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     const user = userCredential.user;
@@ -146,25 +150,36 @@ export const registerElderUser = async (
     await updateProfile(user, { displayName: name });
 
     const elderCode = generateElderCode();
-    const elderUser: ElderUser = {
+    
+    // Create user profile in Users collection
+    const userProfile: UserProfile = {
       userId: user.uid,
       userType: 'elder',
+      displayName: name,
       name,
       email,
       phone,
       age,
       elderCode,
-      emergencyContacts: [],
-      assignedFamilyIds: [],
       createdAt: new Date(),
       lastActive: new Date(),
     };
 
-    await setDoc(doc(db, 'users', user.uid), elderUser);
-    await setDoc(doc(db, 'elders', user.uid), elderUser);
+    await setDoc(doc(db, 'users', user.uid), userProfile);
 
-    return elderUser;
-  } catch (error) {
+    // Create elder data in Elders collection
+    const elderData: ElderData = {
+      elderId: user.uid,
+      userId: user.uid,
+      emergencyContacts: [],
+      assignedFamilyIds: [],
+      pendingFamilyRequests: [],
+    };
+
+    await setDoc(doc(db, 'elders', user.uid), elderData);
+
+    return userProfile;
+  } catch (error: any) {
     throw new Error(`Elder registration failed: ${error.message}`);
   }
 };
@@ -177,21 +192,22 @@ export const registerFamilyUser = async (
   elderCode: string,
   relationDescription?: string,
   phone?: string
-): Promise<FamilyUser> => {
+): Promise<UserProfile> => {
   try {
     // First, verify the elder code exists
-    const eldersQuery = query(
-      collection(db, 'elders'),
-      where('elderCode', '==', elderCode)
+    const usersQuery = query(
+      collection(db, 'users'),
+      where('elderCode', '==', elderCode),
+      where('userType', '==', 'elder')
     );
-    const elderSnapshot = await getDocs(eldersQuery);
+    const userSnapshot = await getDocs(usersQuery);
 
-    if (elderSnapshot.empty) {
+    if (userSnapshot.empty) {
       throw new Error('Invalid elder code. Please check and try again.');
     }
 
-    const elderDoc = elderSnapshot.docs[0];
-    const elderData = elderDoc.data() as ElderUser;
+    const elderUserDoc = userSnapshot.docs[0];
+    const elderUserData = elderUserDoc.data() as UserProfile;
 
     // Create family user account
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -199,34 +215,37 @@ export const registerFamilyUser = async (
 
     await updateProfile(user, { displayName: name });
 
-    const familyUser: FamilyUser = {
+    // Create user profile in Users collection
+    const familyUserProfile: UserProfile = {
       userId: user.uid,
       userType: 'family',
+      displayName: name,
       name,
       email,
       phone,
       relation,
-      relationDescription,
-      elderId: elderData.userId,
+      elderId: elderUserData.userId,
       isApproved: false, // Requires elder approval
       createdAt: new Date(),
       lastActive: new Date(),
     };
 
-    await setDoc(doc(db, 'users', user.uid), familyUser);
+    await setDoc(doc(db, 'users', user.uid), familyUserProfile);
 
     // Add family member to elder's pending approvals
-    await updateDoc(doc(db, 'elders', elderData.userId), {
-      pendingFamilyRequests: arrayUnion({
-        familyId: user.uid,
-        name,
-        relation,
-        requestedAt: new Date(),
-      })
+    const pendingRequest: PendingFamilyRequest = {
+      familyId: user.uid,
+      name,
+      relation,
+      requestedAt: new Date(),
+    };
+
+    await updateDoc(doc(db, 'elders', elderUserData.userId), {
+      pendingFamilyRequests: arrayUnion(pendingRequest)
     });
 
-    return familyUser;
-  } catch (error) {
+    return familyUserProfile;
+  } catch (error: any) {
     throw new Error(`Family member registration failed: ${error.message}`);
   }
 };
@@ -241,13 +260,22 @@ export const approveFamilyMember = async (elderId: string, familyId: string): Pr
 
     // Add family member to elder's assigned family list
     await updateDoc(doc(db, 'elders', elderId), {
-      assignedFamilyIds: arrayUnion(familyId),
-      pendingFamilyRequests: arrayRemove({
-        familyId,
-        requestedAt: new Date(),
-      })
+      assignedFamilyIds: arrayUnion(familyId)
     });
-  } catch (error) {
+
+    // Remove from pending requests (we'll need to get the request first to remove it properly)
+    const elderDoc = await getDoc(doc(db, 'elders', elderId));
+    if (elderDoc.exists()) {
+      const elderData = elderDoc.data() as ElderData;
+      const updatedPendingRequests = elderData.pendingFamilyRequests?.filter(
+        req => req.familyId !== familyId
+      ) || [];
+      
+      await updateDoc(doc(db, 'elders', elderId), {
+        pendingFamilyRequests: updatedPendingRequests
+      });
+    }
+  } catch (error: any) {
     throw new Error(`Failed to approve family member: ${error.message}`);
   }
 };
@@ -255,21 +283,26 @@ export const approveFamilyMember = async (elderId: string, familyId: string): Pr
 export const rejectFamilyMember = async (elderId: string, familyId: string): Promise<void> => {
   try {
     // Remove from pending requests
-    await updateDoc(doc(db, 'elders', elderId), {
-      pendingFamilyRequests: arrayRemove({
-        familyId,
-        requestedAt: new Date(),
-      })
-    });
+    const elderDoc = await getDoc(doc(db, 'elders', elderId));
+    if (elderDoc.exists()) {
+      const elderData = elderDoc.data() as ElderData;
+      const updatedPendingRequests = elderData.pendingFamilyRequests?.filter(
+        req => req.familyId !== familyId
+      ) || [];
+      
+      await updateDoc(doc(db, 'elders', elderId), {
+        pendingFamilyRequests: updatedPendingRequests
+      });
+    }
 
     // Delete family member account
     await deleteDoc(doc(db, 'users', familyId));
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to reject family member: ${error.message}`);
   }
 };
 
-// Reminder Management
+// Reminder Management - Updated to match specification
 export const createReminder = async (reminder: Omit<Reminder, 'reminderId'>): Promise<string> => {
   try {
     const docRef = await addDoc(collection(db, 'reminders'), {
@@ -277,7 +310,7 @@ export const createReminder = async (reminder: Omit<Reminder, 'reminderId'>): Pr
       createdAt: new Date(),
     });
     return docRef.id;
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to create reminder: ${error.message}`);
   }
 };
@@ -295,12 +328,26 @@ export const getElderReminders = async (elderId: string): Promise<Reminder[]> =>
       reminderId: doc.id,
       ...doc.data()
     })) as Reminder[];
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to fetch reminders: ${error.message}`);
   }
 };
 
-// Mood Logging
+export const updateReminderStatus = async (
+  reminderId: string, 
+  status: 'pending' | 'taken' | 'missed'
+): Promise<void> => {
+  try {
+    await updateDoc(doc(db, 'reminders', reminderId), {
+      status,
+      lastTriggered: new Date(),
+    });
+  } catch (error: any) {
+    throw new Error(`Failed to update reminder status: ${error.message}`);
+  }
+};
+
+// Mood Logging - Updated to match specification
 export const logMood = async (elderId: string, moodType: MoodType, notes?: string): Promise<string> => {
   try {
     const docRef = await addDoc(collection(db, 'moodLogs'), {
@@ -310,7 +357,7 @@ export const logMood = async (elderId: string, moodType: MoodType, notes?: strin
       timestamp: new Date(),
     });
     return docRef.id;
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to log mood: ${error.message}`);
   }
 };
@@ -327,12 +374,12 @@ export const getElderMoodLogs = async (elderId: string, limit: number = 30): Pro
       moodId: doc.id,
       ...doc.data()
     })) as MoodLog[];
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to fetch mood logs: ${error.message}`);
   }
 };
 
-// SOS Alert Management
+// SOS Alert Management - Updated to match specification
 export const createSOSAlert = async (
   elderId: string,
   location?: { latitude: number; longitude: number }
@@ -345,12 +392,24 @@ export const createSOSAlert = async (
       isResolved: false,
     });
     return docRef.id;
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to create SOS alert: ${error.message}`);
   }
 };
 
-// Check-in Management
+export const resolveSOSAlert = async (sosId: string, resolvedBy: string): Promise<void> => {
+  try {
+    await updateDoc(doc(db, 'sosAlerts', sosId), {
+      isResolved: true,
+      resolvedBy,
+      resolvedAt: new Date(),
+    });
+  } catch (error: any) {
+    throw new Error(`Failed to resolve SOS alert: ${error.message}`);
+  }
+};
+
+// Check-in Management - Updated to match specification
 export const sendCheckIn = async (
   elderId: string,
   familyId: string,
@@ -365,7 +424,7 @@ export const sendCheckIn = async (
       sentAt: new Date(),
     });
     return docRef.id;
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to send check-in: ${error.message}`);
   }
 };
@@ -380,40 +439,81 @@ export const respondToCheckIn = async (
       response,
       respondedAt: new Date(),
     });
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to respond to check-in: ${error.message}`);
   }
 };
 
-// User Profile Management
-export const getUserProfile = async (userId: string): Promise<ElderUser | FamilyUser | null> => {
+export const getElderCheckIns = async (elderId: string): Promise<CheckIn[]> => {
+  try {
+    const checkInsQuery = query(
+      collection(db, 'checkIns'),
+      where('elderId', '==', elderId),
+      orderBy('sentAt', 'desc')
+    );
+    const snapshot = await getDocs(checkInsQuery);
+    return snapshot.docs.map(doc => ({
+      checkInId: doc.id,
+      ...doc.data()
+    })) as CheckIn[];
+  } catch (error: any) {
+    throw new Error(`Failed to fetch check-ins: ${error.message}`);
+  }
+};
+
+// User Profile Management - Updated to match specification
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
-      return userDoc.data() as ElderUser | FamilyUser;
+      return userDoc.data() as UserProfile;
     }
     return null;
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to fetch user profile: ${error.message}`);
   }
 };
 
 export const updateUserProfile = async (
   userId: string,
-  updates: Partial<ElderUser | FamilyUser>
+  updates: Partial<UserProfile>
 ): Promise<void> => {
   try {
     await updateDoc(doc(db, 'users', userId), {
       ...updates,
       lastActive: new Date(),
     });
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to update user profile: ${error.message}`);
   }
 };
 
-// Family Management
-export const getFamilyMembers = async (elderId: string): Promise<FamilyUser[]> => {
+// Elder Data Management
+export const getElderData = async (elderId: string): Promise<ElderData | null> => {
+  try {
+    const elderDoc = await getDoc(doc(db, 'elders', elderId));
+    if (elderDoc.exists()) {
+      return elderDoc.data() as ElderData;
+    }
+    return null;
+  } catch (error: any) {
+    throw new Error(`Failed to fetch elder data: ${error.message}`);
+  }
+};
+
+export const updateElderData = async (
+  elderId: string,
+  updates: Partial<ElderData>
+): Promise<void> => {
+  try {
+    await updateDoc(doc(db, 'elders', elderId), updates);
+  } catch (error: any) {
+    throw new Error(`Failed to update elder data: ${error.message}`);
+  }
+};
+
+// Family Management - Updated to match specification
+export const getFamilyMembers = async (elderId: string): Promise<UserProfile[]> => {
   try {
     const familyQuery = query(
       collection(db, 'users'),
@@ -422,9 +522,18 @@ export const getFamilyMembers = async (elderId: string): Promise<FamilyUser[]> =
       where('isApproved', '==', true)
     );
     const snapshot = await getDocs(familyQuery);
-    return snapshot.docs.map(doc => doc.data()) as FamilyUser[];
-  } catch (error) {
+    return snapshot.docs.map(doc => doc.data()) as UserProfile[];
+  } catch (error: any) {
     throw new Error(`Failed to fetch family members: ${error.message}`);
+  }
+};
+
+export const getPendingFamilyRequests = async (elderId: string): Promise<PendingFamilyRequest[]> => {
+  try {
+    const elderData = await getElderData(elderId);
+    return elderData?.pendingFamilyRequests || [];
+  } catch (error: any) {
+    throw new Error(`Failed to fetch pending family requests: ${error.message}`);
   }
 };
 
@@ -440,7 +549,7 @@ export const unlinkFamilyMember = async (elderId: string, familyId: string): Pro
       elderId: '',
       isApproved: false
     });
-  } catch (error) {
+  } catch (error: any) {
     throw new Error(`Failed to unlink family member: ${error.message}`);
   }
 };

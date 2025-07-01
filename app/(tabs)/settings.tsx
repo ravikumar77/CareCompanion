@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,6 +11,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser } from '../../hooks/useUser';
 import { 
+  getPendingFamilyRequests, 
+  approveFamilyMember, 
+  rejectFamilyMember,
+  getFamilyMembers,
+  unlinkFamilyMember,
+  PendingFamilyRequest,
+  UserProfile
+} from '../../utils/userService';
+import { 
   User, 
   Bell, 
   Shield, 
@@ -22,7 +30,10 @@ import {
   Volume2,
   Smartphone,
   Heart,
-  Users
+  Users,
+  UserCheck,
+  UserX,
+  Copy
 } from 'lucide-react-native';
 
 export default function SettingsScreen() {
@@ -30,6 +41,121 @@ export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkModeEnabled, setDarkModeEnabled] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const [pendingRequests, setPendingRequests] = useState<PendingFamilyRequest[]>([]);
+  const [familyMembers, setFamilyMembers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (userProfile?.userType === 'elder') {
+      loadPendingRequests();
+      loadFamilyMembers();
+    }
+  }, [userProfile]);
+
+  const loadPendingRequests = async () => {
+    if (!userProfile?.userId) return;
+    
+    try {
+      const requests = await getPendingFamilyRequests(userProfile.userId);
+      setPendingRequests(requests);
+    } catch (error) {
+      console.error('Error loading pending requests:', error);
+    }
+  };
+
+  const loadFamilyMembers = async () => {
+    if (!userProfile?.userId) return;
+    
+    try {
+      const members = await getFamilyMembers(userProfile.userId);
+      setFamilyMembers(members);
+    } catch (error) {
+      console.error('Error loading family members:', error);
+    }
+  };
+
+  const handleApproveFamily = async (familyId: string) => {
+    if (!userProfile?.userId) return;
+    
+    setLoading(true);
+    try {
+      await approveFamilyMember(userProfile.userId, familyId);
+      await loadPendingRequests();
+      await loadFamilyMembers();
+      Alert.alert('Success', 'Family member approved successfully!');
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRejectFamily = async (familyId: string) => {
+    if (!userProfile?.userId) return;
+    
+    Alert.alert(
+      'Reject Family Member',
+      'Are you sure you want to reject this family member? This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reject',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await rejectFamilyMember(userProfile.userId, familyId);
+              await loadPendingRequests();
+              Alert.alert('Success', 'Family member rejected.');
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleUnlinkFamily = async (familyId: string, familyName: string) => {
+    if (!userProfile?.userId) return;
+    
+    Alert.alert(
+      'Unlink Family Member',
+      `Are you sure you want to unlink ${familyName}? They will lose access to your care information.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Unlink',
+          style: 'destructive',
+          onPress: async () => {
+            setLoading(true);
+            try {
+              await unlinkFamilyMember(userProfile.userId, familyId);
+              await loadFamilyMembers();
+              Alert.alert('Success', 'Family member unlinked successfully.');
+            } catch (error: any) {
+              Alert.alert('Error', error.message);
+            } finally {
+              setLoading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleCopyElderCode = () => {
+    if (userProfile?.elderCode) {
+      // In a real app, you'd use Clipboard.setString
+      Alert.alert(
+        'Elder Code',
+        `Your Elder Code is: ${userProfile.elderCode}\n\nShare this code with family members so they can link their accounts to yours.`,
+        [{ text: 'OK' }]
+      );
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -111,15 +237,91 @@ export default function SettingsScreen() {
             </View>
             <View style={styles.profileInfo}>
               <Text style={styles.profileName}>
-                {userProfile?.displayName || user?.displayName || 'User'}
+                {userProfile?.displayName || userProfile?.name || user?.displayName || 'User'}
               </Text>
               <Text style={styles.profileEmail}>{user?.email}</Text>
               <Text style={styles.profileType}>
                 {userProfile?.userType === 'elder' ? 'Elder Account' : 'Family Caregiver'}
               </Text>
+              {userProfile?.userType === 'elder' && userProfile?.elderCode && (
+                <TouchableOpacity style={styles.elderCodeContainer} onPress={handleCopyElderCode}>
+                  <Text style={styles.elderCodeText}>Code: {userProfile.elderCode}</Text>
+                  <Copy size={16} color="#2563EB" />
+                </TouchableOpacity>
+              )}
             </View>
           </View>
         </View>
+
+        {/* Elder-specific sections */}
+        {userProfile?.userType === 'elder' && (
+          <>
+            {/* Pending Family Requests */}
+            {pendingRequests.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Pending Family Requests</Text>
+                <View style={styles.settingsGroup}>
+                  {pendingRequests.map((request) => (
+                    <View key={request.familyId} style={styles.requestItem}>
+                      <View style={styles.requestInfo}>
+                        <Text style={styles.requestName}>{request.name}</Text>
+                        <Text style={styles.requestRelation}>
+                          {request.relation.charAt(0).toUpperCase() + request.relation.slice(1)}
+                        </Text>
+                        <Text style={styles.requestDate}>
+                          Requested: {request.requestedAt.toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <View style={styles.requestActions}>
+                        <TouchableOpacity 
+                          style={styles.approveButton}
+                          onPress={() => handleApproveFamily(request.familyId)}
+                          disabled={loading}
+                        >
+                          <UserCheck size={20} color="#FFFFFF" />
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          style={styles.rejectButton}
+                          onPress={() => handleRejectFamily(request.familyId)}
+                          disabled={loading}
+                        >
+                          <UserX size={20} color="#FFFFFF" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Connected Family Members */}
+            {familyMembers.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Connected Family Members</Text>
+                <View style={styles.settingsGroup}>
+                  {familyMembers.map((member) => (
+                    <View key={member.userId} style={styles.familyMemberItem}>
+                      <View style={styles.familyMemberInfo}>
+                        <Text style={styles.familyMemberName}>{member.name}</Text>
+                        <Text style={styles.familyMemberRelation}>
+                          {member.relation?.charAt(0).toUpperCase() + member.relation?.slice(1)}
+                        </Text>
+                        <Text style={styles.familyMemberEmail}>{member.email}</Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.unlinkButton}
+                        onPress={() => handleUnlinkFamily(member.userId, member.name)}
+                        disabled={loading}
+                      >
+                        <UserX size={16} color="#EF4444" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+          </>
+        )}
 
         {/* Account Settings */}
         <View style={styles.section}>
@@ -306,6 +508,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#2563EB',
     fontWeight: '500',
+    marginBottom: 8,
+  },
+  elderCodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+  },
+  elderCodeText: {
+    fontSize: 12,
+    color: '#2563EB',
+    fontWeight: '600',
+    marginRight: 4,
   },
   settingsGroup: {
     backgroundColor: '#FFFFFF',
@@ -355,6 +573,88 @@ const styles = StyleSheet.create({
   },
   settingRight: {
     marginLeft: 16,
+  },
+  requestItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  requestInfo: {
+    flex: 1,
+  },
+  requestName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  requestRelation: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  requestDate: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  requestActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  approveButton: {
+    backgroundColor: '#22C55E',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rejectButton: {
+    backgroundColor: '#EF4444',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  familyMemberItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  familyMemberInfo: {
+    flex: 1,
+  },
+  familyMemberName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  familyMemberRelation: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  familyMemberEmail: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  unlinkButton: {
+    backgroundColor: '#FEF2F2',
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   logoutButton: {
     flexDirection: 'row',
