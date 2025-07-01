@@ -12,6 +12,7 @@ export default function RootLayout() {
   useFrameworkReady();
   const [user, setUser] = useState<User | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [initializing, setInitializing] = useState(true);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
@@ -20,6 +21,9 @@ export default function RootLayout() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (isMountedRef.current) {
         setUser(user);
+        if (initializing) {
+          setInitializing(false);
+        }
         setAuthLoading(false);
       }
     });
@@ -28,13 +32,13 @@ export default function RootLayout() {
       isMountedRef.current = false;
       unsubscribe();
     };
-  }, []);
+  }, [initializing]);
 
   useEffect(() => {
-    if (!authLoading && isMountedRef.current) {
+    if (!authLoading && !initializing && isMountedRef.current) {
       SplashScreen.hideAsync();
     }
-  }, [authLoading]);
+  }, [authLoading, initializing]);
 
   useEffect(() => {
     return () => {
@@ -42,13 +46,13 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (authLoading) {
+  if (authLoading || initializing) {
     return <LoadingSpinner />;
   }
 
   return (
     <ThemeProvider value={DefaultTheme}>
-      <Stack>
+      <Stack screenOptions={{ headerShown: false }}>
         {user ? (
           <>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

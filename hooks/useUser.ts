@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../utils/firebase';
@@ -35,13 +34,30 @@ export function useUser() {
 
   const logout = async () => {
     try {
-      await signOut(auth);
+      setLoading(true);
+      // Clear user state immediately
       setUser(null);
       setUserProfile(null);
       setError(null);
+      
+      // Sign out from Firebase
+      await signOut(auth);
     } catch (err) {
       console.error('Error signing out:', err);
       setError('Failed to sign out');
+      // Restore user state if signout failed
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setUser(currentUser);
+        try {
+          const profile = await getUserProfile(currentUser.uid);
+          setUserProfile(profile);
+        } catch (profileErr) {
+          console.error('Error restoring profile after failed logout:', profileErr);
+        }
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
