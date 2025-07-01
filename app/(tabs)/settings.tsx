@@ -19,22 +19,7 @@ import {
   PendingFamilyRequest,
   UserProfile
 } from '../../utils/userService';
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  HelpCircle, 
-  LogOut, 
-  Settings as SettingsIcon, 
-  Moon, 
-  Volume2,
-  Smartphone,
-  Heart,
-  Users,
-  UserCheck,
-  UserX,
-  Copy
-} from 'lucide-react-native';
+import { User, Bell, Shield, CircleHelp as HelpCircle, LogOut, Settings as SettingsIcon, Moon, Volume2, Smartphone, Heart, Users, UserCheck, UserX, Copy } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const { user, userProfile, logout } = useUser();
