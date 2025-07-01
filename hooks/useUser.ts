@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
-import { auth } from '../utils/firebase';
-import { getUserProfile, UserProfile } from '../utils/userService';
+import { auth } from '@/utils/firebase';
+import { getUserProfile, UserProfile } from '@/utils/userService';
 
 export function useUser() {
   const [user, setUser] = useState<User | null>(null);
@@ -35,13 +34,20 @@ export function useUser() {
 
   const logout = async () => {
     try {
+      setLoading(true);
+      
+      // Sign out from Firebase - this will trigger the auth state change
       await signOut(auth);
+      
+      // Clear local state
       setUser(null);
       setUserProfile(null);
       setError(null);
     } catch (err) {
       console.error('Error signing out:', err);
       setError('Failed to sign out');
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -8,20 +8,16 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  Picker
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { auth } from '../../utils/firebase';
 import { 
   registerElderUser, 
   registerFamilyUser, 
   RelationType 
-} from '../../utils/userService';
+} from '@/utils/userService';
 import { router } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, User, Heart, Users, Hash } from 'lucide-react-native';
-
-
+import { Eye, EyeOff, Mail, Lock, User, Heart, Users, Hash, ArrowLeft } from 'lucide-react-native';
 
 export default function RegisterScreen() {
   const [email, setEmail] = useState('');
@@ -34,11 +30,13 @@ export default function RegisterScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // New state variables
-  const [age, setAge] = useState(''); // Elder-specific
-  const [elderCode, setElderCode] = useState(''); // Family-specific
-  const [relation, setRelation] = useState<RelationType>('son'); // Family-specific
-  const [relationDescription, setRelationDescription] = useState(''); // Family-specific
+  // Elder-specific fields
+  const [age, setAge] = useState('');
+
+  // Family-specific fields
+  const [elderCode, setElderCode] = useState('');
+  const [relation, setRelation] = useState<RelationType>('son');
+  const [relationDescription, setRelationDescription] = useState('');
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword || !displayName) {
@@ -82,7 +80,9 @@ export default function RegisterScreen() {
         Alert.alert(
           'Elder Account Created!', 
           `Your Elder Code is: ${elderUser.elderCode}\n\nShare this code with your family members so they can link their accounts to yours.`,
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+          [{ text: 'OK', onPress: () => {
+            // Navigation will be handled automatically by auth state change
+          }}]
         );
       } else {
         // Register as Family Member
@@ -99,7 +99,9 @@ export default function RegisterScreen() {
         Alert.alert(
           'Family Account Created!', 
           'Your account has been created and linked to the elder. You may need approval from the elder to access all features.',
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)') }]
+          [{ text: 'OK', onPress: () => {
+            // Navigation will be handled automatically by auth state change
+          }}]
         );
       }
     } catch (error: any) {
@@ -116,30 +118,38 @@ export default function RegisterScreen() {
         style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Logo and Title */}
-          <View style={styles.headerContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <ArrowLeft size={24} color="#64748B" />
+            </TouchableOpacity>
+            
             <View style={styles.logoContainer}>
-              <Heart size={64} color="#2563EB" />
+              <Heart size={48} color="#2563EB" />
             </View>
-            <Text style={styles.title}>Family Care Companion</Text>
-            <Text style={styles.subtitle}>Create your account to get started</Text>
+            <Text style={styles.title}>Create Account</Text>
+            <Text style={styles.subtitle}>Join the Family Care community</Text>
           </View>
 
           {/* Registration Form */}
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <User size={20} color="#6B7280" style={styles.inputIcon} />
+              <User size={20} color="#64748B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Full Name"
                 value={displayName}
                 onChangeText={setDisplayName}
                 autoCapitalize="words"
+                placeholderTextColor="#94A3B8"
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Mail size={20} color="#6B7280" style={styles.inputIcon} />
+              <Mail size={20} color="#64748B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email address"
@@ -148,11 +158,12 @@ export default function RegisterScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                placeholderTextColor="#94A3B8"
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Lock size={20} color="#6B7280" style={styles.inputIcon} />
+              <Lock size={20} color="#64748B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -160,21 +171,22 @@ export default function RegisterScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                placeholderTextColor="#94A3B8"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff size={20} color="#6B7280" />
+                  <EyeOff size={20} color="#64748B" />
                 ) : (
-                  <Eye size={20} color="#6B7280" />
+                  <Eye size={20} color="#64748B" />
                 )}
               </TouchableOpacity>
             </View>
 
             <View style={styles.inputContainer}>
-              <Lock size={20} color="#6B7280" style={styles.inputIcon} />
+              <Lock size={20} color="#64748B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Confirm Password"
@@ -182,15 +194,16 @@ export default function RegisterScreen() {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
                 autoCapitalize="none"
+                placeholderTextColor="#94A3B8"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
                 onPress={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 {showConfirmPassword ? (
-                  <EyeOff size={20} color="#6B7280" />
+                  <EyeOff size={20} color="#64748B" />
                 ) : (
-                  <Eye size={20} color="#6B7280" />
+                  <Eye size={20} color="#64748B" />
                 )}
               </TouchableOpacity>
             </View>
@@ -231,13 +244,14 @@ export default function RegisterScreen() {
             {/* Elder-specific fields */}
             {userType === 'elder' && (
               <View style={styles.inputContainer}>
-                <User size={20} color="#6B7280" style={styles.inputIcon} />
+                <User size={20} color="#64748B" style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Age"
                   value={age}
                   onChangeText={setAge}
                   keyboardType="numeric"
+                  placeholderTextColor="#94A3B8"
                 />
               </View>
             )}
@@ -246,42 +260,43 @@ export default function RegisterScreen() {
             {userType === 'family' && (
               <>
                 <View style={styles.inputContainer}>
-                  <Hash size={20} color="#6B7280" style={styles.inputIcon} />
+                  <Hash size={20} color="#64748B" style={styles.inputIcon} />
                   <TextInput
                     style={styles.input}
                     placeholder="Elder Code (e.g., E1234-ABCD)"
                     value={elderCode}
                     onChangeText={setElderCode}
                     autoCapitalize="characters"
+                    placeholderTextColor="#94A3B8"
                   />
                 </View>
 
-                <View style={styles.inputContainer}>
-                  <Heart size={20} color="#6B7280" style={styles.inputIcon} />
-                  <Text style={styles.userTypeLabel}>Relationship:</Text>
-                </View>
                 <View style={styles.relationContainer}>
-                  {(['son', 'daughter', 'spouse', 'sibling', 'grandchild', 'caregiver', 'other'] as RelationType[]).map((rel) => (
-                    <TouchableOpacity
-                      key={rel}
-                      style={[styles.relationOption, relation === rel && styles.relationOptionSelected]}
-                      onPress={() => setRelation(rel)}
-                    >
-                      <Text style={[styles.relationText, relation === rel && styles.relationTextSelected]}>
-                        {rel.charAt(0).toUpperCase() + rel.slice(1)}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                  <Text style={styles.relationLabel}>Relationship:</Text>
+                  <View style={styles.relationOptions}>
+                    {(['son', 'daughter', 'spouse', 'sibling', 'grandchild', 'caregiver', 'other'] as RelationType[]).map((rel) => (
+                      <TouchableOpacity
+                        key={rel}
+                        style={[styles.relationOption, relation === rel && styles.relationOptionSelected]}
+                        onPress={() => setRelation(rel)}
+                      >
+                        <Text style={[styles.relationText, relation === rel && styles.relationTextSelected]}>
+                          {rel.charAt(0).toUpperCase() + rel.slice(1)}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
                 </View>
 
                 {relation === 'other' && (
                   <View style={styles.inputContainer}>
-                    <User size={20} color="#6B7280" style={styles.inputIcon} />
+                    <User size={20} color="#64748B" style={styles.inputIcon} />
                     <TextInput
                       style={styles.input}
                       placeholder="Describe your relationship"
                       value={relationDescription}
                       onChangeText={setRelationDescription}
+                      placeholderTextColor="#94A3B8"
                     />
                   </View>
                 )}
@@ -322,21 +337,38 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  headerContainer: {
+  header: {
     alignItems: 'center',
-    marginBottom: 40,
+    paddingTop: 20,
+    marginBottom: 32,
   },
-  logoContainer: {
-    width: 120,
-    height: 120,
-    backgroundColor: '#EFF6FF',
-    borderRadius: 60,
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    top: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  logoContainer: {
+    width: 96,
+    height: 96,
+    backgroundColor: '#EBF4FF',
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    marginTop: 40,
   },
   title: {
     fontSize: 28,
@@ -356,12 +388,9 @@ const styles = StyleSheet.create({
     padding: 24,
     marginBottom: 24,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    shadowRadius: 8,
     elevation: 5,
   },
   inputContainer: {
@@ -423,39 +452,19 @@ const styles = StyleSheet.create({
   userTypeButtonTextActive: {
     color: '#FFFFFF',
   },
-  registerButton: {
-    backgroundColor: '#2563EB',
-    borderRadius: 12,
-    paddingVertical: 16,
-    alignItems: 'center',
+  relationContainer: {
+    marginBottom: 16,
   },
-  registerButtonDisabled: {
-    backgroundColor: '#94A3B8',
-  },
-  registerButtonText: {
-    color: '#FFFFFF',
+  relationLabel: {
     fontSize: 16,
     fontWeight: '600',
+    color: '#1E293B',
+    marginBottom: 12,
   },
-  signinContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  signinText: {
-    color: '#6B7280',
-    fontSize: 14,
-  },
-  signinLink: {
-    color: '#2563EB',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  relationContainer: {
+  relationOptions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginBottom: 16,
   },
   relationOption: {
     paddingHorizontal: 12,
@@ -475,6 +484,42 @@ const styles = StyleSheet.create({
   },
   relationTextSelected: {
     color: '#2563EB',
+    fontWeight: '600',
+  },
+  registerButton: {
+    backgroundColor: '#2563EB',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  registerButtonDisabled: {
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  registerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  signinContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingBottom: 20,
+  },
+  signinText: {
+    color: '#64748B',
+    fontSize: 14,
+  },
+  signinLink: {
+    color: '#2563EB',
+    fontSize: 14,
     fontWeight: '600',
   },
 });

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   View,
@@ -9,14 +8,13 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
-  Image
+  ScrollView
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../utils/firebase';
+import { auth } from '@/utils/firebase';
 import { router } from 'expo-router';
-import { Eye, EyeOff, Mail, Lock, Heart } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock, Heart, ArrowLeft } from 'lucide-react-native';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -33,7 +31,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.replace('/(tabs)');
+      // Navigation will be handled automatically by the auth state change
     } catch (error: any) {
       Alert.alert('Login Failed', error.message);
     } finally {
@@ -48,19 +46,26 @@ export default function LoginScreen() {
         style={styles.keyboardView}
       >
         <ScrollView contentContainerStyle={styles.scrollContainer}>
-          {/* Logo and Title */}
-          <View style={styles.headerContainer}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity 
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
+              <ArrowLeft size={24} color="#64748B" />
+            </TouchableOpacity>
+            
             <View style={styles.logoContainer}>
-              <Heart size={64} color="#2563EB" />
+              <Heart size={48} color="#2563EB" />
             </View>
-            <Text style={styles.title}>Family Care Companion</Text>
-            <Text style={styles.subtitle}>Welcome back! Please sign in to your account.</Text>
+            <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign in to your Family Care account</Text>
           </View>
 
           {/* Login Form */}
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Mail size={20} color="#6B7280" style={styles.inputIcon} />
+              <Mail size={20} color="#64748B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Email address"
@@ -69,11 +74,12 @@ export default function LoginScreen() {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
+                placeholderTextColor="#94A3B8"
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Lock size={20} color="#6B7280" style={styles.inputIcon} />
+              <Lock size={20} color="#64748B" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Password"
@@ -81,15 +87,16 @@ export default function LoginScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                placeholderTextColor="#94A3B8"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff size={20} color="#6B7280" />
+                  <EyeOff size={20} color="#64748B" />
                 ) : (
-                  <Eye size={20} color="#6B7280" />
+                  <Eye size={20} color="#64748B" />
                 )}
               </TouchableOpacity>
             </View>
@@ -106,7 +113,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.forgotPasswordButton}
-              onPress={() => Alert.alert('Forgot Password', 'Password reset functionality would be implemented here.')}
+              onPress={() => Alert.alert('Forgot Password', 'Password reset functionality will be available soon.')}
             >
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
@@ -128,39 +135,56 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F8FAFC',
   },
   keyboardView: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    justifyContent: 'center',
     paddingHorizontal: 24,
   },
-  headerContainer: {
+  header: {
     alignItems: 'center',
+    paddingTop: 20,
     marginBottom: 40,
   },
+  backButton: {
+    position: 'absolute',
+    left: 0,
+    top: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   logoContainer: {
-    width: 120,
-    height: 120,
+    width: 96,
+    height: 96,
     backgroundColor: '#EBF4FF',
-    borderRadius: 60,
+    borderRadius: 48,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
+    marginTop: 40,
   },
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1E293B',
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#64748B',
     textAlign: 'center',
     lineHeight: 24,
   },
@@ -170,12 +194,17 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D1D5DB',
+    borderColor: '#E2E8F0',
     borderRadius: 12,
     marginBottom: 16,
     paddingHorizontal: 16,
-    backgroundColor: '#F9FAFB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   inputIcon: {
     marginRight: 12,
@@ -184,7 +213,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     fontSize: 16,
-    color: '#1F2937',
+    color: '#1E293B',
   },
   eyeIcon: {
     paddingLeft: 12,
@@ -195,9 +224,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
   },
   loginButtonDisabled: {
-    backgroundColor: '#9CA3AF',
+    backgroundColor: '#94A3B8',
+    shadowOpacity: 0,
+    elevation: 0,
   },
   loginButtonText: {
     color: '#FFFFFF',
@@ -211,14 +247,16 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: '#2563EB',
     fontSize: 14,
+    fontWeight: '500',
   },
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 20,
   },
   signupText: {
-    color: '#6B7280',
+    color: '#64748B',
     fontSize: 14,
   },
   signupLink: {
