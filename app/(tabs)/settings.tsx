@@ -10,19 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser } from '@/hooks/useUser';
-import { 
-  User, 
-  Bell, 
-  Shield, 
-  HelpCircle, 
-  LogOut, 
-  Settings as SettingsIcon, 
-  Moon, 
-  Volume2,
-  Smartphone,
-  Heart,
-  Users
-} from 'lucide-react-native';
+import { User, Bell, Shield, CircleHelp as HelpCircle, LogOut, Settings as SettingsIcon, Moon, Volume2, Smartphone, Heart, Users } from 'lucide-react-native';
 
 export default function SettingsScreen() {
   const { user, userProfile, logout } = useUser();
