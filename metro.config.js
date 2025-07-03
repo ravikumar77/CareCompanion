@@ -14,7 +14,7 @@ config.transformer.getTransformOptions = async () => ({
     experimentalImportSupport: false,
     inlineRequires: true,
     enableBabelRCLookup: false,
-    disableLocalTransforms: true,
+    disableLocalTransforms: false,
   },
 });
 
